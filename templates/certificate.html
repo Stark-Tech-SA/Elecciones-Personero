@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Certificado de votación</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <section class="certificate">
+    <h1>Credencial y Certificado de Votación</h1>
+    {% if school %}
+      <h2>{{ school.school_name }}</h2>
+      <p>{{ school.city }} - {{ school.election_year }}</p>
+    {% endif %}
+    <hr>
+    <p><strong>Estudiante:</strong> {{ student.full_name }}</p>
+    <p><strong>Documento:</strong> {{ student.doc_id }}</p>
+    <p><strong>Usuario único:</strong> {{ student.unique_user }}</p>
+    <p><strong>Grado/Grupo:</strong> {{ student.grade }} {{ student.group_name }}</p>
+    <img src="{{ url_for('qr_image', token=student.qr_token) }}" alt="QR" class="qr" />
+    <p>Presente este código para su proceso de votación.</p>
+    <button onclick="window.print()">Imprimir</button>
+  </section>
+</body>
+</html>

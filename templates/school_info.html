@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Información del colegio</h2>
+<form method="POST" enctype="multipart/form-data" class="form">
+  <label>Nombre del colegio<input name="school_name" required value="{{ school.school_name if school else '' }}" /></label>
+  <label>Ciudad<input name="city" value="{{ school.city if school else '' }}" /></label>
+  <label>Año electoral<input name="election_year" value="{{ school.election_year if school else '' }}" /></label>
+  <label>Descripción<textarea name="description">{{ school.description if school else '' }}</textarea></label>
+  <label>Logo (png/jpg/webp)<input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" /></label>
+  <button type="submit">Guardar</button>
+</form>
+{% endblock %}

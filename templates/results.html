@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Escrutinio y estadísticas</h2>
+<ul>
+  <li>Total de estudiantes aptos: {{ total_students }}</li>
+  <li>Total de votantes: {{ total_voted }}</li>
+  <li>Participación: {{ turnout }}%</li>
+</ul>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Cargo</th><th>Candidato</th><th>Votos</th></tr></thead>
+    <tbody>
+      {% for row in tally %}
+      <tr>
+        <td>{{ row.position }}</td>
+        <td>{{ row.full_name }}</td>
+        <td>{{ row.votes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

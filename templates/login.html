@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="form-wrapper">
+  <h2>Ingreso de votantes</h2>
+  <p>Ingrese su usuario único para votar.</p>
+  <form method="POST" class="form">
+    <label>Usuario único<input name="unique_user" required /></label>
+    <button type="submit">Entrar a votar</button>
+  </form>
+</section>
+{% endblock %}
