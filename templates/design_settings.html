@@ -15,6 +15,12 @@
     <label>Color de texto</label>
     <input type="color" name="text_color" value="{{ settings.text_color }}">
 
+    <label>Logo del colegio (también se muestra en el encabezado)</label>
+    <input type="file" name="school_logo" accept=".png,.jpg,.jpeg,.webp">
+    {% if school_ctx and school_ctx.logo_path %}
+      <img src="/{{ school_ctx.logo_path }}" alt="logo" style="max-height:80px; background:#fff; padding:6px; border-radius:6px;">
+    {% endif %}
+
     <label>Imagen para encabezado (opcional)</label>
     <input type="file" name="header_image" accept=".png,.jpg,.jpeg,.webp">
     {% if settings.header_image_path %}

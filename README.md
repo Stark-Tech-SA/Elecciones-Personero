@@ -17,8 +17,7 @@ En una terminal (Administración):
 python run_admin.py
 ```
 - URL: `http://localhost:5000/admin/login`
-- Usuario por defecto: `admin`
-- Clave por defecto: `admin123`
+- Ingresa con las credenciales de administrador configuradas en tu instalación.
 
 En otra terminal (Votación):
 ```bash

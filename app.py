@@ -165,8 +165,11 @@ def get_design_settings():
 
 @app.context_processor
 def inject_theme_context():
+    db = get_db()
+    school = db.execute("SELECT * FROM school_info WHERE id=1").fetchone()
     return {
         "theme": get_design_settings(),
+        "school_ctx": school,
         "ADMIN_BASE": app_base_url(ADMIN_PORT),
         "VOTING_BASE": app_base_url(VOTING_PORT),
     }
@@ -189,7 +192,8 @@ def save_upload(file_storage, prefix: str) -> str | None:
 
 
 def generate_unique_user() -> str:
-    return f"{secrets.randbelow(10**8):08d}"
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join(secrets.choice(alphabet) for _ in range(6))
 
 
 def generate_unique_user_non_colliding(db):
@@ -222,14 +226,6 @@ def split_by_port():
 
     if port == VOTING_PORT and path.startswith("/admin"):
         return redirect(f"{app_base_url(ADMIN_PORT)}/admin/login")
-
-    if port == ADMIN_PORT and (
-        path.startswith("/login")
-        or path.startswith("/vote")
-        or path.startswith("/logout")
-        or path.startswith("/qr")
-    ):
-        return redirect(f"{app_base_url(VOTING_PORT)}{path}")
 
     return None
 
@@ -289,8 +285,31 @@ def design_settings():
     db = get_db()
     if request.method == "POST":
         settings = db.execute("SELECT * FROM design_settings WHERE id=1").fetchone()
+        school = db.execute("SELECT * FROM school_info WHERE id=1").fetchone()
         header_image = save_upload(request.files.get("header_image"), "header")
         bg_image = save_upload(request.files.get("background_image"), "bg")
+        logo_image = save_upload(request.files.get("school_logo"), "logo")
+
+        if logo_image:
+            db.execute(
+                """
+                INSERT INTO school_info (id, school_name, city, election_year, logo_path, description)
+                VALUES (1, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    school_name=excluded.school_name,
+                    city=excluded.city,
+                    election_year=excluded.election_year,
+                    logo_path=excluded.logo_path,
+                    description=excluded.description
+                """,
+                (
+                    school["school_name"] if school else "",
+                    school["city"] if school else "",
+                    school["election_year"] if school else "",
+                    logo_image,
+                    school["description"] if school else "",
+                ),
+            )
 
         db.execute(
             """
@@ -451,9 +470,9 @@ def build_certificate_pdf(students, school):
     pdf = canvas.Canvas(packet, pagesize=A4)
     page_w, page_h = A4
 
-    margin = 18
-    cols, rows = 2, 4
-    gap_x, gap_y = 8, 8
+    margin = 12
+    cols, rows = 2, 10
+    gap_x, gap_y = 6, 4
     cert_w = (page_w - margin * 2 - gap_x) / cols
     cert_h = (page_h - margin * 2 - (rows - 1) * gap_y) / rows
 
@@ -466,7 +485,7 @@ def build_certificate_pdf(students, school):
     school_name = school["school_name"] if school and school["school_name"] else "Institución educativa"
 
     for idx, student in enumerate(students):
-        slot = idx % 8
+        slot = idx % 20
         col = slot % cols
         row = slot // cols
 
@@ -485,10 +504,10 @@ def build_certificate_pdf(students, school):
             except Exception:
                 pass
 
-        pdf.setFont("Helvetica-Bold", 11)
-        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 16, school_name)
-        pdf.setFont("Helvetica-Bold", 9)
-        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 30, "Certificado de Votación 2026")
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 14, school_name)
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 26, "Certificado de Votación 2026")
 
         if logo_reader:
             pdf.setFillColorRGB(1, 1, 1)
@@ -496,20 +515,20 @@ def build_certificate_pdf(students, school):
             pdf.setFillColorRGB(0, 0, 0)
             pdf.drawImage(logo_reader, x + cert_w - 42, y + cert_h - 42, width=28, height=28, preserveAspectRatio=True, mask='auto')
 
-        pdf.setFont("Helvetica", 8)
-        pdf.drawString(x + 8, y + cert_h - 48, f"Estudiante: {student['full_name']}")
-        pdf.drawString(x + 8, y + cert_h - 60, f"Documento: {student['doc_id'] or '-'}")
-        pdf.drawString(x + 8, y + cert_h - 72, f"Usuario para votar: {student['unique_user']}")
+        pdf.setFont("Helvetica", 7)
+        pdf.drawString(x + 8, y + cert_h - 40, f"Estudiante: {student['full_name']}")
+        pdf.drawString(x + 8, y + cert_h - 50, f"Documento: {student['doc_id'] or '-'}")
+        pdf.drawString(x + 8, y + cert_h - 60, f"Usuario: {student['unique_user']}")
 
         qr_buf = io.BytesIO()
         qrcode.make(student["unique_user"]).save(qr_buf, format="PNG")
         qr_buf.seek(0)
-        qr_size = 46
+        qr_size = 58
         pdf.drawImage(ImageReader(qr_buf), x + 8, y + 8, width=qr_size, height=qr_size)
         pdf.setFont("Helvetica", 7)
-        pdf.drawString(x + 60, y + 25, "QR con usuario de votación")
+        pdf.drawString(x + 72, y + 28, "QR usuario")
 
-        if slot == 7 and idx != len(students) - 1:
+        if slot == 19 and idx != len(students) - 1:
             pdf.showPage()
 
     pdf.save()
