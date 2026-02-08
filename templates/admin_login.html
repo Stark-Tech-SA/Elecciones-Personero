@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:420px; margin:auto;">
+  <h2>Ingreso administrador</h2>
+  <p class="muted">Usuario inicial: <code>admin</code> · Clave inicial: <code>admin123</code></p>
+  <form method="post">
+    <label>Usuario</label>
+    <input name="username" required>
+
+    <label>Contraseña</label>
+    <input type="password" name="password" required>
+
+    <button type="submit">Ingresar</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Personalizar diseño</h2>
+  <form method="post">
+    <label>Título de la página</label>
+    <input name="page_title" value="{{ settings.page_title }}">
+
+    <label>Color encabezado</label>
+    <input type="color" name="header_color" value="{{ settings.header_color }}">
+
+    <label>Color de fondo</label>
+    <input type="color" name="background_color" value="{{ settings.background_color }}">
+
+    <label>Color de texto</label>
+    <input type="color" name="text_color" value="{{ settings.text_color }}">
+
+    <button type="submit">Guardar diseño</button>
+  </form>
+</div>
+{% endblock %}

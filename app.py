@@ -19,6 +19,9 @@ from flask import (
     session,
     url_for,
 )
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 from werkzeug.utils import secure_filename
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -27,6 +30,8 @@ UPLOADS = BASE_DIR / "uploads"
 UPLOADS.mkdir(exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+ADMIN_PORT = 5000
+VOTING_PORT = 5001
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -58,6 +63,20 @@ def init_db():
             election_year TEXT,
             logo_path TEXT,
             description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS design_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            page_title TEXT DEFAULT 'Elecciones Personero',
+            header_color TEXT DEFAULT '#0d6efd',
+            background_color TEXT DEFAULT '#f8f9fa',
+            text_color TEXT DEFAULT '#212529'
+        );
+
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS candidates (
@@ -92,11 +111,54 @@ def init_db():
         );
         """
     )
+    db.execute(
+        """
+        INSERT INTO design_settings (id)
+        VALUES (1)
+        ON CONFLICT(id) DO NOTHING
+        """
+    )
+    db.execute(
+        """
+        INSERT INTO admin_users (username, password)
+        VALUES ('admin', 'admin123')
+        ON CONFLICT(username) DO NOTHING
+        """
+    )
     db.commit()
     db.close()
 
 
 init_db()
+
+
+def app_base_url(port: int) -> str:
+    return f"http://localhost:{port}"
+
+
+def request_port() -> int | None:
+    host = request.host or ""
+    if ":" not in host:
+        return None
+    try:
+        return int(host.rsplit(":", 1)[1])
+    except ValueError:
+        return None
+
+
+def get_design_settings():
+    db = get_db()
+    row = db.execute("SELECT * FROM design_settings WHERE id=1").fetchone()
+    return row
+
+
+@app.context_processor
+def inject_theme_context():
+    return {
+        "theme": get_design_settings(),
+        "ADMIN_BASE": app_base_url(ADMIN_PORT),
+        "VOTING_BASE": app_base_url(VOTING_PORT),
+    }
 
 
 def allowed_image(filename: str) -> bool:
@@ -115,8 +177,51 @@ def save_upload(file_storage, prefix: str) -> str | None:
     return f"uploads/{out_name}"
 
 
-def generate_unique_user(index: int) -> str:
-    return f"EST{datetime.now().year}{index:05d}{secrets.token_hex(2).upper()}"
+def generate_unique_user() -> str:
+    # Usuario numérico corto (máximo 8 dígitos)
+    return f"{secrets.randbelow(10**8):08d}"
+
+
+def generate_unique_user_non_colliding(db):
+    for _ in range(20):
+        candidate = generate_unique_user()
+        exists = db.execute("SELECT id FROM students WHERE unique_user = ?", (candidate,)).fetchone()
+        if not exists:
+            return candidate
+    raise RuntimeError("No fue posible generar usuario único")
+
+
+def admin_required():
+    if not session.get("admin_logged"):
+        return redirect(url_for("admin_login"))
+    return None
+
+
+@app.before_request
+def split_by_port():
+    port = request_port()
+    path = request.path
+
+    if path.startswith("/uploads") or path.startswith("/static"):
+        return None
+
+    if path == "/":
+        if port == VOTING_PORT:
+            return redirect(url_for("login"))
+        return redirect(url_for("admin_login"))
+
+    if port == VOTING_PORT and path.startswith("/admin"):
+        return redirect(f"{app_base_url(ADMIN_PORT)}/admin/login")
+
+    if port == ADMIN_PORT and (
+        path.startswith("/login")
+        or path.startswith("/vote")
+        or path.startswith("/logout")
+        or path.startswith("/qr")
+    ):
+        return redirect(f"{app_base_url(VOTING_PORT)}{path}")
+
+    return None
 
 
 @app.route("/uploads/<path:filename>")
@@ -124,13 +229,38 @@ def uploaded_file(filename: str):
     return send_from_directory(UPLOADS, filename)
 
 
-@app.route("/")
-def index():
-    return redirect(url_for("login"))
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        db = get_db()
+        admin = db.execute(
+            "SELECT * FROM admin_users WHERE username = ? AND password = ?", (username, password)
+        ).fetchone()
+        if not admin:
+            flash("Credenciales de administrador inválidas.")
+            return redirect(url_for("admin_login"))
+        session["admin_logged"] = True
+        session["admin_username"] = admin["username"]
+        return redirect(url_for("admin_home"))
+
+    return render_template("admin_login.html")
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin_logged", None)
+    session.pop("admin_username", None)
+    return redirect(url_for("admin_login"))
 
 
 @app.route("/admin")
 def admin_home():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
     school = db.execute("SELECT * FROM school_info WHERE id=1").fetchone()
     counts = {
@@ -141,8 +271,41 @@ def admin_home():
     return render_template("admin_home.html", school=school, counts=counts)
 
 
+@app.route("/admin/design", methods=["GET", "POST"])
+def design_settings():
+    guard = admin_required()
+    if guard:
+        return guard
+
+    db = get_db()
+    if request.method == "POST":
+        db.execute(
+            """
+            UPDATE design_settings
+            SET page_title = ?, header_color = ?, background_color = ?, text_color = ?
+            WHERE id = 1
+            """,
+            (
+                request.form.get("page_title", "Elecciones Personero").strip() or "Elecciones Personero",
+                request.form.get("header_color", "#0d6efd").strip() or "#0d6efd",
+                request.form.get("background_color", "#f8f9fa").strip() or "#f8f9fa",
+                request.form.get("text_color", "#212529").strip() or "#212529",
+            ),
+        )
+        db.commit()
+        flash("Diseño actualizado correctamente.")
+        return redirect(url_for("design_settings"))
+
+    settings = db.execute("SELECT * FROM design_settings WHERE id=1").fetchone()
+    return render_template("design_settings.html", settings=settings)
+
+
 @app.route("/admin/school", methods=["GET", "POST"])
 def school_info():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
     if request.method == "POST":
         logo_path = save_upload(request.files.get("logo"), "logo")
@@ -178,6 +341,10 @@ def school_info():
 
 @app.route("/admin/candidates", methods=["GET", "POST"])
 def candidates():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
     if request.method == "POST":
         photo_path = save_upload(request.files.get("photo"), "candidate")
@@ -204,6 +371,10 @@ def candidates():
 
 @app.route("/admin/students", methods=["GET", "POST"])
 def students_upload():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
     if request.method == "POST":
         file = request.files.get("students_file")
@@ -227,7 +398,6 @@ def students_upload():
 
         inserted = 0
         skipped = 0
-        start_index = db.execute("SELECT COUNT(*) AS c FROM students").fetchone()["c"] + 1
 
         for _, row in df.iterrows():
             full_name = str(row.get("full_name", "")).strip()
@@ -243,7 +413,7 @@ def students_upload():
                 skipped += 1
                 continue
 
-            unique_user = generate_unique_user(start_index + inserted)
+            unique_user = generate_unique_user_non_colliding(db)
             qr_token = secrets.token_urlsafe(16)
             db.execute(
                 """
@@ -269,100 +439,93 @@ def students_upload():
     return render_template("students_upload.html", students=students)
 
 
-@app.route("/admin/certificate/<int:student_id>")
-def certificate(student_id: int):
+def build_certificate_pdf(students, school):
+    packet = io.BytesIO()
+    pdf = canvas.Canvas(packet, pagesize=A4)
+    page_w, page_h = A4
+
+    margin = 24
+    cols = 2
+    rows = 2
+    cert_w = (page_w - margin * 2 - 12) / cols
+    cert_h = (page_h - margin * 2 - 12) / rows
+
+    logo_reader = None
+    if school and school["logo_path"]:
+        logo_file = BASE_DIR / school["logo_path"]
+        if logo_file.exists():
+            logo_reader = ImageReader(str(logo_file))
+
+    for idx, student in enumerate(students):
+        slot = idx % 4
+        col = slot % 2
+        row = slot // 2
+
+        x = margin + col * (cert_w + 12)
+        y = page_h - margin - (row + 1) * cert_h - row * 12
+
+        pdf.roundRect(x, y, cert_w, cert_h, 8)
+        pdf.setFont("Helvetica-Bold", 11)
+        school_name = school["school_name"] if school and school["school_name"] else "Institución educativa"
+        pdf.drawString(x + 10, y + cert_h - 18, school_name)
+
+        if logo_reader:
+            pdf.drawImage(logo_reader, x + cert_w - 54, y + cert_h - 54, width=42, height=42, preserveAspectRatio=True)
+
+        pdf.setFont("Helvetica", 9)
+        pdf.drawString(x + 10, y + cert_h - 36, "Certificado de participación electoral")
+        pdf.drawString(x + 10, y + cert_h - 52, f"Estudiante: {student['full_name']}")
+        pdf.drawString(x + 10, y + cert_h - 66, f"Documento: {student['doc_id'] or '-'}")
+        pdf.drawString(x + 10, y + cert_h - 80, f"Usuario: {student['unique_user']}")
+        status_txt = "Votó" if student["voted"] else "Pendiente por votar"
+        pdf.drawString(x + 10, y + cert_h - 94, f"Estado: {status_txt}")
+
+        vote_url = f"{app_base_url(VOTING_PORT)}/vote/access/{student['qr_token']}"
+        qr_img = qrcode.make(vote_url)
+        qr_buf = io.BytesIO()
+        qr_img.save(qr_buf, format="PNG")
+        qr_buf.seek(0)
+        pdf.drawImage(ImageReader(qr_buf), x + 10, y + 10, width=70, height=70)
+        pdf.setFont("Helvetica", 7)
+        pdf.drawString(x + 86, y + 22, "Escanea para ingresar")
+        pdf.drawString(x + 86, y + 12, "a la votación")
+
+        if slot == 3 and idx != len(students) - 1:
+            pdf.showPage()
+
+    pdf.save()
+    packet.seek(0)
+    return packet
+
+
+@app.route("/admin/certificates/pdf")
+def certificates_pdf():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
-    student = db.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
-    school = db.execute("SELECT * FROM school_info WHERE id=1").fetchone()
-    if not student:
-        return "Estudiante no encontrado", 404
+    students = db.execute("SELECT * FROM students ORDER BY full_name").fetchall()
+    school = db.execute("SELECT * FROM school_info WHERE id = 1").fetchone()
+    if not students:
+        flash("No hay estudiantes para generar certificados.")
+        return redirect(url_for("students_upload"))
 
-    return render_template("certificate.html", student=student, school=school)
-
-
-@app.route("/qr/<token>")
-def qr_image(token: str):
-    img = qrcode.make(token)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    buf.seek(0)
-    return send_file(buf, mimetype="image/png")
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        unique_user = request.form.get("unique_user", "").strip()
-        db = get_db()
-        student = db.execute(
-            "SELECT * FROM students WHERE unique_user = ?", (unique_user,)
-        ).fetchone()
-
-        if not student:
-            flash("Usuario no válido.")
-            return redirect(url_for("login"))
-        if student["voted"]:
-            flash("Este usuario ya votó.")
-            return redirect(url_for("login"))
-
-        session["student_id"] = student["id"]
-        return redirect(url_for("vote"))
-
-    return render_template("login.html")
-
-
-@app.route("/vote", methods=["GET", "POST"])
-def vote():
-    student_id = session.get("student_id")
-    if not student_id:
-        return redirect(url_for("login"))
-
-    db = get_db()
-    student = db.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
-    if not student or student["voted"]:
-        session.clear()
-        flash("Este usuario ya votó o no existe.")
-        return redirect(url_for("login"))
-
-    positions = ["Personero", "Contralor"]
-    candidates_by_position = {
-        position: db.execute(
-            "SELECT * FROM candidates WHERE position = ? ORDER BY full_name", (position,)
-        ).fetchall()
-        for position in positions
-    }
-
-    if request.method == "POST":
-        personero_id = request.form.get("personero")
-        contralor_id = request.form.get("contralor")
-
-        if not personero_id or not contralor_id:
-            flash("Debes seleccionar Personero y Contralor.")
-            return redirect(url_for("vote"))
-
-        now = datetime.now().isoformat()
-        db.execute(
-            "INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)",
-            (student_id, "Personero", int(personero_id), now),
-        )
-        db.execute(
-            "INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)",
-            (student_id, "Contralor", int(contralor_id), now),
-        )
-        db.execute(
-            "UPDATE students SET voted = 1, voted_at = ? WHERE id = ?", (now, student_id)
-        )
-        db.commit()
-
-        session.clear()
-        flash("Voto registrado exitosamente.")
-        return redirect(url_for("login"))
-
-    return render_template("vote.html", student=student, candidates_by_position=candidates_by_position)
+    pdf_bytes = build_certificate_pdf(students, school)
+    return send_file(
+        pdf_bytes,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name="certificados_estudiantes.pdf",
+    )
 
 
 @app.route("/admin/results")
 def results():
+    guard = admin_required()
+    if guard:
+        return guard
+
     db = get_db()
     total_students = db.execute("SELECT COUNT(*) AS c FROM students").fetchone()["c"]
     total_voted = db.execute("SELECT COUNT(*) AS c FROM students WHERE voted=1").fetchone()["c"]
@@ -388,6 +551,104 @@ def results():
     )
 
 
+@app.route("/vote/access/<token>")
+def access_by_qr(token: str):
+    db = get_db()
+    student = db.execute("SELECT * FROM students WHERE qr_token = ?", (token,)).fetchone()
+    if not student:
+        flash("QR inválido.", "error")
+        return redirect(url_for("login"))
+
+    if student["voted"]:
+        flash("Este usuario ya votó.", "already_voted")
+        return redirect(url_for("login"))
+
+    session["student_id"] = student["id"]
+    return redirect(url_for("vote"))
+
+
+@app.route("/qr/<token>")
+def qr_image(token: str):
+    vote_url = f"{app_base_url(VOTING_PORT)}/vote/access/{token}"
+    img = qrcode.make(vote_url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        unique_user = request.form.get("unique_user", "").strip()
+        db = get_db()
+        student = db.execute(
+            "SELECT * FROM students WHERE unique_user = ?", (unique_user,)
+        ).fetchone()
+
+        if not student:
+            flash("Usuario no válido.", "error")
+            return redirect(url_for("login"))
+        if student["voted"]:
+            flash("Este usuario ya votó.", "already_voted")
+            return redirect(url_for("login"))
+
+        session["student_id"] = student["id"]
+        return redirect(url_for("vote"))
+
+    return render_template("login.html")
+
+
+@app.route("/vote", methods=["GET", "POST"])
+def vote():
+    student_id = session.get("student_id")
+    if not student_id:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    student = db.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student or student["voted"]:
+        session.clear()
+        flash("Este usuario ya votó o no existe.", "already_voted")
+        return redirect(url_for("login"))
+
+    positions = ["Personero", "Contralor"]
+    candidates_by_position = {
+        position: db.execute(
+            "SELECT * FROM candidates WHERE position = ? ORDER BY full_name", (position,)
+        ).fetchall()
+        for position in positions
+    }
+
+    if request.method == "POST":
+        personero_id = request.form.get("personero")
+        contralor_id = request.form.get("contralor")
+
+        if not personero_id or not contralor_id:
+            flash("Debes seleccionar Personero y Contralor.", "error")
+            return redirect(url_for("vote"))
+
+        now = datetime.now().isoformat()
+        db.execute(
+            "INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)",
+            (student_id, "Personero", int(personero_id), now),
+        )
+        db.execute(
+            "INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)",
+            (student_id, "Contralor", int(contralor_id), now),
+        )
+        db.execute(
+            "UPDATE students SET voted = 1, voted_at = ? WHERE id = ?", (now, student_id)
+        )
+        db.commit()
+
+        session.clear()
+        flash("Voto registrado exitosamente.")
+        return redirect(url_for("login"))
+
+    return render_template("vote.html", student=student, candidates_by_position=candidates_by_position)
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -395,4 +656,5 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Ejecuta por defecto el servidor administrativo
+    app.run(debug=True, host="0.0.0.0", port=ADMIN_PORT)
