@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Hola {{ student.full_name }}, selecciona tus candidatos</h2>
+<form method="POST" class="form">
+  <label>Personero
+    <select name="personero" required>
+      <option value="">-- Selecciona --</option>
+      {% for c in candidates_by_position['Personero'] %}
+      <option value="{{ c.id }}">{{ c.full_name }} ({{ c.grade }})</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Contralor
+    <select name="contralor" required>
+      <option value="">-- Selecciona --</option>
+      {% for c in candidates_by_position['Contralor'] %}
+      <option value="{{ c.id }}">{{ c.full_name }} ({{ c.grade }})</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <button type="submit">Registrar voto</button>
+</form>
+{% endblock %}

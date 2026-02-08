@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card-grid">
+  <a class="card" href="{{ url_for('school_info') }}">
+    <h2>Información del colegio</h2>
+    <p>Configura nombre, ciudad, año y logo.</p>
+  </a>
+  <a class="card" href="{{ url_for('candidates') }}">
+    <h2>Candidatos</h2>
+    <p>Registra personero/contralor y suplentes con foto.</p>
+  </a>
+  <a class="card" href="{{ url_for('students_upload') }}">
+    <h2>Estudiantes aptos</h2>
+    <p>Importa desde Excel/CSV y genera credenciales.</p>
+  </a>
+  <a class="card" href="{{ url_for('results') }}">
+    <h2>Escrutinio</h2>
+    <p>Consulta estadísticas y conteo de votos.</p>
+  </a>
+</section>
+
+<section class="stats">
+  <h3>Resumen rápido</h3>
+  <ul>
+    <li>Candidatos registrados: {{ counts.candidates }}</li>
+    <li>Estudiantes cargados: {{ counts.students }}</li>
+    <li>Estudiantes que ya votaron: {{ counts.voted }}</li>
+  </ul>
+</section>
+{% if school %}
+<section class="stats">
+  <h3>{{ school.school_name }}</h3>
+  <p>{{ school.city }} | Año electoral {{ school.election_year }}</p>
+  <p>{{ school.description }}</p>
+  {% if school.logo_path %}
+    <img class="thumb" src="/{{ school.logo_path }}" alt="Logo" />
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

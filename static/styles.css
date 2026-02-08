@@ -1,0 +1,18 @@
+body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #222; }
+header { background: #184a8b; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+nav a { color: #fff; margin-left: 1rem; text-decoration: none; }
+main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
+.form, .stats, .form-wrapper { background: #fff; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 1rem; }
+.form label { display: block; margin-bottom: .7rem; }
+input, select, textarea, button { width: 100%; padding: .55rem; margin-top: .3rem; }
+button { background: #184a8b; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.card { background: #fff; border-radius: 10px; padding: 1rem; text-decoration: none; color: inherit; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.table-wrap { overflow-x: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .6rem; border-bottom: 1px solid #e6e6e6; text-align: left; }
+.thumb { width: 65px; border-radius: 8px; }
+.flash-list { list-style: none; max-width: 1000px; margin: 1rem auto; padding: 0 1rem; }
+.flash-list li { background: #dff2ff; border: 1px solid #b7dfff; padding: .8rem; border-radius: 6px; margin-bottom: .5rem; }
+.certificate { max-width: 700px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 12px; text-align: center; }
+.qr { width: 220px; }

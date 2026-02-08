@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Registro de candidatos</h2>
+<form method="POST" enctype="multipart/form-data" class="form">
+  <label>Nombre completo<input name="full_name" required /></label>
+  <label>Grado<input name="grade" /></label>
+  <label>Cargo
+    <select name="position" required>
+      <option>Personero</option>
+      <option>Contralor</option>
+      <option>Suplente Personero</option>
+      <option>Suplente Contralor</option>
+    </select>
+  </label>
+  <label>Propuesta<textarea name="proposal"></textarea></label>
+  <label>Foto<input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp" /></label>
+  <button type="submit">Agregar candidato</button>
+</form>
+
+<h3>Listado de candidatos</h3>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Foto</th><th>Nombre</th><th>Cargo</th><th>Grado</th><th>Propuesta</th></tr>
+    </thead>
+    <tbody>
+      {% for c in candidates %}
+      <tr>
+        <td>{% if c.photo_path %}<img class="thumb" src="/{{ c.photo_path }}" alt="{{ c.full_name }}" />{% endif %}</td>
+        <td>{{ c.full_name }}</td>
+        <td>{{ c.position }}</td>
+        <td>{{ c.grade }}</td>
+        <td>{{ c.proposal }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

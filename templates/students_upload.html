@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Carga de estudiantes aptos para votar</h2>
+<p>Sube un archivo con columnas obligatorias: <code>doc_id</code>, <code>full_name</code>, <code>grade</code>, <code>group_name</code>.</p>
+<form method="POST" enctype="multipart/form-data" class="form">
+  <label>Archivo Excel (.xlsx) o CSV<input type="file" name="students_file" accept=".xlsx,.csv" required /></label>
+  <button type="submit">Importar estudiantes</button>
+</form>
+
+<h3>Credenciales generadas</h3>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Nombre</th><th>Documento</th><th>Usuario único</th><th>Estado</th><th>Certificado</th></tr>
+    </thead>
+    <tbody>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.full_name }}</td>
+        <td>{{ s.doc_id }}</td>
+        <td>{{ s.unique_user }}</td>
+        <td>{% if s.voted %}Ya votó{% else %}Pendiente{% endif %}</td>
+        <td><a href="{{ url_for('certificate', student_id=s.id) }}" target="_blank">Imprimir</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
