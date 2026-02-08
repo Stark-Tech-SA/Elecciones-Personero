@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card">
   <h2>Personalizar diseño</h2>
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     <label>Título de la página</label>
     <input name="page_title" value="{{ settings.page_title }}">
 
@@ -14,6 +14,18 @@
 
     <label>Color de texto</label>
     <input type="color" name="text_color" value="{{ settings.text_color }}">
+
+    <label>Imagen para encabezado (opcional)</label>
+    <input type="file" name="header_image" accept=".png,.jpg,.jpeg,.webp">
+    {% if settings.header_image_path %}
+      <img src="/{{ settings.header_image_path }}" alt="header" style="max-height:80px;">
+    {% endif %}
+
+    <label>Imagen de fondo de página (opcional)</label>
+    <input type="file" name="background_image" accept=".png,.jpg,.jpeg,.webp">
+    {% if settings.background_image_path %}
+      <img src="/{{ settings.background_image_path }}" alt="fondo" style="max-height:80px;">
+    {% endif %}
 
     <button type="submit">Guardar diseño</button>
   </form>

@@ -7,22 +7,31 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 1rem;
-      background: {{ theme.background_color if theme else '#f8f9fa' }};
+      background-color: {{ theme.background_color if theme else '#f8f9fa' }};
+      {% if theme and theme.background_image_path %}
+      background-image: url('/{{ theme.background_image_path }}');
+      background-size: cover;
+      background-attachment: fixed;
+      {% endif %}
       color: {{ theme.text_color if theme else '#212529' }};
     }
     nav { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    nav a {
-      text-decoration: none;
+    nav a { text-decoration: none; background: {{ theme.header_color if theme else '#0d6efd' }}; color: #fff; padding: .45rem .7rem; border-radius: 6px; }
+    .header {
       background: {{ theme.header_color if theme else '#0d6efd' }};
-      color: #fff;
-      padding: .45rem .7rem;
-      border-radius: 6px;
-      font-size: .95rem;
+      color:#fff;
+      border-radius:10px;
+      padding:1rem;
+      margin-bottom:1rem;
+      {% if theme and theme.header_image_path %}
+      background-image: linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url('/{{ theme.header_image_path }}');
+      background-size: cover;
+      background-position: center;
+      {% endif %}
     }
-    .header {background: {{ theme.header_color if theme else '#0d6efd' }}; color:#fff; border-radius:10px; padding:1rem; margin-bottom:1rem;}
     .card { border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem; background:#fff; }
     .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
     .flash { background:#e8f5e9; border:1px solid #2e7d32; border-radius:6px; padding:.6rem; }
@@ -37,6 +46,9 @@
   <div class="header">
     <h1 style="margin:0;">{{ theme.page_title if theme else 'Elecciones Personero' }}</h1>
     <small>Admin: {{ ADMIN_BASE }} · Votación: {{ VOTING_BASE }}</small>
+    <div style="margin-top:.6rem;">
+      <a class="btn-link" href="{{ VOTING_BASE }}/login" target="_blank">Ir a página de votación</a>
+    </div>
   </div>
 
   {% if session.get('admin_logged') %}

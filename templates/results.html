@@ -1,13 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="grid">
-  <div class="card"><h3>Total estudiantes</h3><p>{{ total_students }}</p></div>
-  <div class="card"><h3>Total votos emitidos</h3><p>{{ total_voted }}</p></div>
-  <div class="card"><h3>Participación</h3><p>{{ turnout }}%</p></div>
+  <div class="card"><h3>Total estudiantes</h3><p style="font-size:1.5rem;">{{ total_students }}</p></div>
+  <div class="card"><h3>Total votos emitidos</h3><p style="font-size:1.5rem;">{{ total_voted }}</p></div>
+  <div class="card"><h3>Participación</h3><p style="font-size:1.5rem;">{{ turnout }}%</p></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Ganador Personero</h3>
+    <p>{{ winners['Personero'].full_name if winners['Personero'] else 'Sin datos' }}</p>
+  </div>
+  <div class="card">
+    <h3>Ganador Contralor</h3>
+    <p>{{ winners['Contralor'].full_name if winners['Contralor'] else 'Sin datos' }}</p>
+  </div>
 </div>
 
 <div class="card">
-  <h2>Conteo de votos</h2>
+  <h2>Gráfica de votos por candidato</h2>
+  <canvas id="votesChart" height="100"></canvas>
+</div>
+
+<div class="card">
+  <h2>Detalle</h2>
   <table>
     <tr><th>Cargo</th><th>Candidato</th><th>Votos</th></tr>
     {% for row in tally %}
@@ -21,4 +37,27 @@
     {% endfor %}
   </table>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const labels = {{ chart_labels|tojson }};
+  const values = {{ chart_values|tojson }};
+  new Chart(document.getElementById('votesChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Votos',
+        data: values,
+        backgroundColor: 'rgba(13,110,253,0.65)',
+        borderColor: 'rgba(13,110,253,1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+</script>
 {% endblock %}
