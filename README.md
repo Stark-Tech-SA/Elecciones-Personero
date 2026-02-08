@@ -9,21 +9,12 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-### Levantar servidores separados
-En una terminal (Administración):
-```bash
 python run_admin.py
 ```
-- URL: `http://localhost:5000/admin/login`
-- Ingresa con las credenciales de administrador configuradas en tu instalación.
 
-En otra terminal (Votación):
-```bash
-python run_voting.py
-```
-- URL: `http://localhost:5001/login`
+## Rutas principales (mismo host)
+- Administración: `http://localhost:5000/admin/login`
+- Votación estudiantes: `http://localhost:5000/votacion/login`
 
 ## Generar `.exe` en Windows
 Ejecuta en `cmd`:

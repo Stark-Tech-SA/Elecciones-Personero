@@ -213,19 +213,17 @@ def admin_required():
 
 @app.before_request
 def split_by_port():
-    port = request_port()
     path = request.path
 
     if path.startswith("/uploads") or path.startswith("/static"):
         return None
 
     if path == "/":
-        if port == VOTING_PORT:
-            return redirect(url_for("login"))
         return redirect(url_for("admin_login"))
 
-    if port == VOTING_PORT and path.startswith("/admin"):
-        return redirect(f"{app_base_url(ADMIN_PORT)}/admin/login")
+    # Toda ruta administrativa exige sesión (excepto login)
+    if path.startswith("/admin") and path != "/admin/login" and not session.get("admin_logged"):
+        return redirect(url_for("admin_login"))
 
     return None
 
@@ -471,7 +469,7 @@ def build_certificate_pdf(students, school):
     page_w, page_h = A4
 
     margin = 12
-    cols, rows = 2, 10
+    cols, rows = 2, 8
     gap_x, gap_y = 6, 4
     cert_w = (page_w - margin * 2 - gap_x) / cols
     cert_h = (page_h - margin * 2 - (rows - 1) * gap_y) / rows
@@ -485,7 +483,7 @@ def build_certificate_pdf(students, school):
     school_name = school["school_name"] if school and school["school_name"] else "Institución educativa"
 
     for idx, student in enumerate(students):
-        slot = idx % 20
+        slot = idx % 16
         col = slot % cols
         row = slot // cols
 
@@ -504,7 +502,7 @@ def build_certificate_pdf(students, school):
             except Exception:
                 pass
 
-        pdf.setFont("Helvetica-Bold", 14)
+        pdf.setFont("Helvetica-Bold", 16)
         pdf.drawCentredString(x + cert_w / 2, y + cert_h - 14, school_name)
         pdf.setFont("Helvetica-Bold", 8)
         pdf.drawCentredString(x + cert_w / 2, y + cert_h - 26, "Certificado de Votación 2026")
@@ -523,12 +521,16 @@ def build_certificate_pdf(students, school):
         qr_buf = io.BytesIO()
         qrcode.make(student["unique_user"]).save(qr_buf, format="PNG")
         qr_buf.seek(0)
-        qr_size = 58
+        qr_size = 66
         pdf.drawImage(ImageReader(qr_buf), x + 8, y + 8, width=qr_size, height=qr_size)
         pdf.setFont("Helvetica", 7)
         pdf.drawString(x + 72, y + 28, "QR usuario")
 
-        if slot == 19 and idx != len(students) - 1:
+        pdf.drawString(x + 72, y + 18, f"Grado/Grupo: {student['grade'] or '-'} / {student['group_name'] or '-'}")
+        estado = "Votó" if student["voted"] else "Pendiente"
+        pdf.drawString(x + 72, y + 8, f"Estado: {estado}")
+
+        if slot == 15 and idx != len(students) - 1:
             pdf.showPage()
 
     pdf.save()
@@ -599,6 +601,7 @@ def results():
     )
 
 
+@app.route("/votacion/access/<token>")
 @app.route("/vote/access/<token>")
 def access_by_qr(token: str):
     student = get_db().execute("SELECT * FROM students WHERE qr_token = ?", (token,)).fetchone()
@@ -625,6 +628,7 @@ def qr_image(token: str):
     return send_file(buf, mimetype="image/png")
 
 
+@app.route("/votacion/login", methods=["GET", "POST"])
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -644,6 +648,7 @@ def login():
     return render_template("login.html")
 
 
+@app.route("/votacion/votar", methods=["GET", "POST"])
 @app.route("/vote", methods=["GET", "POST"])
 def vote():
     student_id = session.get("student_id")
@@ -684,6 +689,7 @@ def vote():
     return render_template("vote.html", student=student, candidates_by_position=candidates_by_position)
 
 
+@app.route("/votacion/logout")
 @app.route("/logout")
 def logout():
     session.clear()

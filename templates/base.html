@@ -45,11 +45,8 @@
 <body>
   <div class="header">
     <div style="display:flex; align-items:center; gap:.8rem;">
-      {% if school_ctx and school_ctx.logo_path %}<img src="/{{ school_ctx.logo_path }}" alt="logo colegio" style="height:56px; background:#fff; padding:6px; border-radius:8px;">{% endif %}
-      <div><h1 style="margin:0;">{{ theme.page_title if theme else 'Elecciones Personero' }}</h1><small>Admin: {{ ADMIN_BASE }} · Votación: {{ VOTING_BASE }}</small></div>
-    </div>
-    <div style="margin-top:.6rem;">
-      <a class="btn-link" href="{{ VOTING_BASE }}/login" target="_blank">Ir a página de votación</a>
+      {% if school_ctx and school_ctx.logo_path %}<img src="/{{ school_ctx.logo_path }}" alt="logo colegio" style="height:90px;">{% endif %}
+      <div><h1 style="margin:0;">{{ theme.page_title if theme else 'Elecciones Personero' }}</h1></div>
     </div>
   </div>
 

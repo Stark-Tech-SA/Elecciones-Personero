@@ -1,12 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="max-width:420px; margin:auto;">
+<div class="card" style="max-width:520px; margin:auto;">
   <h2>Ingreso a votación</h2>
-  <p class="muted">Puedes ingresar desde este servidor o desde {{ VOTING_BASE }}.</p>
+  <p class="muted">Sección de votación: <code>/votacion/login</code></p>
   <form method="post">
     <label>Usuario único (6 caracteres alfanuméricos)</label>
-    <input name="unique_user" maxlength="6" pattern="[A-Za-z0-9]{1,6}" placeholder="Ej: A1B2C3" required>
+    <input id="unique_user" name="unique_user" maxlength="6" pattern="[A-Za-z0-9]{1,6}" placeholder="Ej: A1B2C3" required>
     <button type="submit">Ingresar</button>
   </form>
+
+  <hr>
+  <h3>Escanear QR con la cámara</h3>
+  <p class="muted">Al escanear, se completa automáticamente el usuario.</p>
+  <div id="reader" style="width:100%; max-width:360px;"></div>
+  <button type="button" onclick="startScanner()">Activar cámara</button>
 </div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+  let html5QrCode;
+  function startScanner() {
+    if (html5QrCode) return;
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      (decodedText) => {
+        const v = (decodedText || '').trim().toUpperCase();
+        document.getElementById('unique_user').value = v.slice(0, 6);
+      },
+      () => {}
+    ).catch((err) => {
+      alert('No se pudo activar la cámara: ' + err);
+      html5QrCode = null;
+    });
+  }
+</script>
 {% endblock %}
