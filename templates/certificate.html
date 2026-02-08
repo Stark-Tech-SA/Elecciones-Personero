@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Certificado de votación</h2>
+  <p><strong>Estudiante:</strong> {{ student.full_name }}</p>
+  <p><strong>Usuario:</strong> {{ student.unique_user }}</p>
+  <p><strong>Documento:</strong> {{ student.doc_id }}</p>
+  <p><strong>Colegio:</strong> {{ school.school_name if school else 'N/D' }}</p>
+  <p><strong>Estado:</strong> {{ 'Votó' if student.voted else 'Pendiente por votar' }}</p>
+  {% if student.voted_at %}<p><strong>Fecha de voto:</strong> {{ student.voted_at }}</p>{% endif %}
+  <p><img src="{{ url_for('qr_image', token=student.qr_token) }}" alt="QR"></p>
+</div>
+{% endblock %}

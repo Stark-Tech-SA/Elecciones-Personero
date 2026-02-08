@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid">
+  <div class="card"><h3>Total estudiantes</h3><p>{{ total_students }}</p></div>
+  <div class="card"><h3>Total votos emitidos</h3><p>{{ total_voted }}</p></div>
+  <div class="card"><h3>Participación</h3><p>{{ turnout }}%</p></div>
+</div>
+
+<div class="card">
+  <h2>Conteo de votos</h2>
+  <table>
+    <tr><th>Cargo</th><th>Candidato</th><th>Votos</th></tr>
+    {% for row in tally %}
+      <tr>
+        <td>{{ row.position }}</td>
+        <td>{{ row.full_name }}</td>
+        <td>{{ row.votes }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3">Aún no hay votos registrados.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

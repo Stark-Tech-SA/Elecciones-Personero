@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Información del colegio</h2>
+  <form method="post" enctype="multipart/form-data">
+    <label>Nombre del colegio</label>
+    <input name="school_name" value="{{ school.school_name if school else '' }}">
+
+    <label>Ciudad</label>
+    <input name="city" value="{{ school.city if school else '' }}">
+
+    <label>Año electoral</label>
+    <input name="election_year" value="{{ school.election_year if school else '' }}">
+
+    <label>Descripción</label>
+    <textarea name="description">{{ school.description if school else '' }}</textarea>
+
+    <label>Logo</label>
+    <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp">
+
+    {% if school and school.logo_path %}
+      <p>Logo actual:</p>
+      <img src="/{{ school.logo_path }}" alt="logo" style="max-height:100px;">
+    {% endif %}
+
+    <button type="submit">Guardar</button>
+  </form>
+</div>
+{% endblock %}

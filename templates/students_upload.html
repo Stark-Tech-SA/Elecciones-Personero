@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Cargar estudiantes (CSV/XLSX)</h2>
+  <p class="muted">Columnas requeridas: <code>doc_id, full_name, grade, group_name</code></p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="file" name="students_file" accept=".csv,.xlsx" required>
+    <button type="submit">Cargar archivo</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Estudiantes</h2>
+  <table>
+    <tr><th>Documento</th><th>Nombre</th><th>Grado</th><th>Grupo</th><th>Usuario</th><th>Estado</th><th>Certificado</th></tr>
+    {% for s in students %}
+      <tr>
+        <td>{{ s.doc_id }}</td>
+        <td>{{ s.full_name }}</td>
+        <td>{{ s.grade }}</td>
+        <td>{{ s.group_name }}</td>
+        <td>{{ s.unique_user }}</td>
+        <td>{{ 'Votó' if s.voted else 'Pendiente' }}</td>
+        <td><a href="{{ url_for('certificate', student_id=s.id) }}">Ver</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">No hay estudiantes.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

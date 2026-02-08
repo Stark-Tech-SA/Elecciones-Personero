@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Registrar candidato</h2>
+  <form method="post" enctype="multipart/form-data">
+    <label>Nombre completo</label>
+    <input name="full_name" required>
+
+    <label>Grado</label>
+    <input name="grade">
+
+    <label>Cargo</label>
+    <select name="position" required>
+      <option>Personero</option>
+      <option>Contralor</option>
+    </select>
+
+    <label>Propuesta</label>
+    <textarea name="proposal"></textarea>
+
+    <label>Foto</label>
+    <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp">
+
+    <button type="submit">Guardar candidato</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Listado de candidatos</h2>
+  <table>
+    <tr><th>Nombre</th><th>Grado</th><th>Cargo</th><th>Propuesta</th><th>Foto</th></tr>
+    {% for c in candidates %}
+      <tr>
+        <td>{{ c.full_name }}</td>
+        <td>{{ c.grade }}</td>
+        <td>{{ c.position }}</td>
+        <td>{{ c.proposal }}</td>
+        <td>{% if c.photo_path %}<img src="/{{ c.photo_path }}" alt="foto" style="max-height:60px;">{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5">Sin candidatos registrados.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

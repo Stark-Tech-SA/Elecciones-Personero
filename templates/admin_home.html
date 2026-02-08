@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Panel administrativo</h2>
+  <p><strong>Colegio:</strong> {{ school.school_name if school else 'Sin configurar' }}</p>
+  <p class="muted">Ciudad: {{ school.city if school else '-' }} · Año electoral: {{ school.election_year if school else '-' }}</p>
+</div>
+<div class="grid">
+  <div class="card"><h3>Candidatos</h3><p>{{ counts.candidates }}</p></div>
+  <div class="card"><h3>Estudiantes</h3><p>{{ counts.students }}</p></div>
+  <div class="card"><h3>Ya votaron</h3><p>{{ counts.voted }}</p></div>
+</div>
+{% endblock %}

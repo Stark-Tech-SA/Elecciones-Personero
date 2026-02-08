@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elecciones Personero</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 1rem; }
+    nav { display: flex; gap: .8rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    nav a { text-decoration: none; background:#0d6efd; color:#fff; padding:.45rem .7rem; border-radius:6px; }
+    .card { border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
+    .flash { background:#e8f5e9; border:1px solid #2e7d32; border-radius:6px; padding:.6rem; }
+    .muted { color:#666; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border:1px solid #ddd; padding:.45rem; text-align:left; }
+    input, select, textarea, button { width:100%; padding:.45rem; margin:.2rem 0 .6rem; }
+  </style>
+</head>
+<body>
+  <h1>Elecciones Personero</h1>
+  <nav>
+    <a href="{{ url_for('admin_home') }}">Admin</a>
+    <a href="{{ url_for('school_info') }}">Colegio</a>
+    <a href="{{ url_for('candidates') }}">Candidatos</a>
+    <a href="{{ url_for('students_upload') }}">Estudiantes</a>
+    <a href="{{ url_for('results') }}">Resultados</a>
+    <a href="{{ url_for('login') }}">Votación</a>
+  </nav>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <p class="flash">{{ m }}</p>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>
