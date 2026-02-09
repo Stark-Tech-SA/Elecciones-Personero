@@ -248,6 +248,9 @@ def admin_login():
         session["admin_username"] = admin["username"]
         return redirect(url_for("admin_home"))
 
+    # Si visitan el login, se limpia sesión admin previa para evitar accesos persistentes.
+    session.pop("admin_logged", None)
+    session.pop("admin_username", None)
     return render_template("admin_login.html")
 
 
@@ -468,9 +471,9 @@ def build_certificate_pdf(students, school):
     pdf = canvas.Canvas(packet, pagesize=A4)
     page_w, page_h = A4
 
-    margin = 12
-    cols, rows = 2, 8
-    gap_x, gap_y = 6, 4
+    margin = 16
+    cols, rows = 2, 6
+    gap_x, gap_y = 8, 10
     cert_w = (page_w - margin * 2 - gap_x) / cols
     cert_h = (page_h - margin * 2 - (rows - 1) * gap_y) / rows
 
@@ -483,54 +486,58 @@ def build_certificate_pdf(students, school):
     school_name = school["school_name"] if school and school["school_name"] else "Institución educativa"
 
     for idx, student in enumerate(students):
-        slot = idx % 16
+        slot = idx % (cols * rows)
         col = slot % cols
         row = slot // cols
 
         x = margin + col * (cert_w + gap_x)
         y = page_h - margin - (row + 1) * cert_h - row * gap_y
 
-        pdf.roundRect(x, y, cert_w, cert_h, 6)
+        pdf.roundRect(x, y, cert_w, cert_h, 8)
 
         if logo_reader:
             try:
                 pdf.saveState()
-                pdf.setFillAlpha(0.08)
-                wm_size = min(cert_w * 0.65, cert_h * 0.85)
-                pdf.drawImage(logo_reader, x + (cert_w - wm_size) / 2, y + (cert_h - wm_size) / 2, width=wm_size, height=wm_size, preserveAspectRatio=True, mask='auto')
+                pdf.setFillAlpha(0.06)
+                wm_size = min(cert_w * 0.55, cert_h * 0.8)
+                pdf.drawImage(
+                    logo_reader,
+                    x + (cert_w - wm_size) / 2,
+                    y + (cert_h - wm_size) / 2,
+                    width=wm_size,
+                    height=wm_size,
+                    preserveAspectRatio=True,
+                    mask='auto',
+                )
                 pdf.restoreState()
             except Exception:
                 pass
 
-        pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 14, school_name)
-        pdf.setFont("Helvetica-Bold", 8)
-        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 26, "Certificado de Votación 2026")
+        # Encabezado
+        pdf.setFont("Helvetica-Bold", 15)
+        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 20, school_name)
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawCentredString(x + cert_w / 2, y + cert_h - 34, "Certificado de Votación 2026")
 
-        if logo_reader:
-            pdf.setFillColorRGB(1, 1, 1)
-            pdf.rect(x + cert_w - 44, y + cert_h - 44, 32, 32, fill=1, stroke=0)
-            pdf.setFillColorRGB(0, 0, 0)
-            pdf.drawImage(logo_reader, x + cert_w - 42, y + cert_h - 42, width=28, height=28, preserveAspectRatio=True, mask='auto')
+        # Datos del estudiante
+        pdf.setFont("Helvetica", 8)
+        pdf.drawString(x + 10, y + cert_h - 50, f"Estudiante: {student['full_name']}")
+        pdf.drawString(x + 10, y + cert_h - 62, f"Documento: {student['doc_id'] or '-'}")
+        pdf.drawString(x + 10, y + cert_h - 74, f"Grado: {student['grade'] or '-'}")
+        pdf.drawString(x + 10, y + cert_h - 86, f"Usuario: {student['unique_user']}")
 
-        pdf.setFont("Helvetica", 7)
-        pdf.drawString(x + 8, y + cert_h - 40, f"Estudiante: {student['full_name']}")
-        pdf.drawString(x + 8, y + cert_h - 50, f"Documento: {student['doc_id'] or '-'}")
-        pdf.drawString(x + 8, y + cert_h - 60, f"Usuario: {student['unique_user']}")
-
+        # QR centrado y más grande, sin tapar texto
         qr_buf = io.BytesIO()
         qrcode.make(student["unique_user"]).save(qr_buf, format="PNG")
         qr_buf.seek(0)
-        qr_size = 66
-        pdf.drawImage(ImageReader(qr_buf), x + 8, y + 8, width=qr_size, height=qr_size)
+        qr_size = 64
+        qr_x = x + (cert_w - qr_size) / 2
+        qr_y = y + 10
+        pdf.drawImage(ImageReader(qr_buf), qr_x, qr_y, width=qr_size, height=qr_size)
         pdf.setFont("Helvetica", 7)
-        pdf.drawString(x + 72, y + 28, "QR usuario")
+        pdf.drawCentredString(x + cert_w / 2, qr_y - 6, "QR de usuario para votar")
 
-        pdf.drawString(x + 72, y + 18, f"Grado/Grupo: {student['grade'] or '-'} / {student['group_name'] or '-'}")
-        estado = "Votó" if student["voted"] else "Pendiente"
-        pdf.drawString(x + 72, y + 8, f"Estado: {estado}")
-
-        if slot == 15 and idx != len(students) - 1:
+        if slot == (cols * rows - 1) and idx != len(students) - 1:
             pdf.showPage()
 
     pdf.save()

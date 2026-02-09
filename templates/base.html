@@ -50,6 +50,10 @@
     </div>
   </div>
 
+  <div style="margin:.4rem 0 1rem;">
+    <a class="btn-link" href="{{ url_for('login') }}">Ir a votaciones</a>
+  </div>
+
   {% if session.get('admin_logged') %}
   <nav>
     <a href="{{ url_for('admin_home') }}">Panel</a>
