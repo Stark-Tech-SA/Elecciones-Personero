@@ -466,6 +466,24 @@ def students_upload():
     return render_template("students_upload.html", students=db.execute("SELECT * FROM students ORDER BY full_name").fetchall())
 
 
+@app.post("/admin/students/<int:student_id>/delete")
+def student_delete(student_id: int):
+    guard = admin_required()
+    if guard:
+        return guard
+
+    db = get_db()
+    db.execute("DELETE FROM votes WHERE student_id = ?", (student_id,))
+    deleted = db.execute("DELETE FROM students WHERE id = ?", (student_id,)).rowcount
+    db.commit()
+
+    if deleted:
+        flash("Estudiante eliminado correctamente.")
+    else:
+        flash("No se encontró el estudiante.")
+    return redirect(url_for("students_upload"))
+
+
 def build_certificate_pdf(students, school):
     packet = io.BytesIO()
     pdf = canvas.Canvas(packet, pagesize=A4)
@@ -513,7 +531,10 @@ def build_certificate_pdf(students, school):
             except Exception:
                 pass
 
-        # Encabezado
+        # Encabezado + logo esquina superior izquierda
+        if logo_reader:
+            pdf.drawImage(logo_reader, x + 8, y + cert_h - 28, width=18, height=18, preserveAspectRatio=True, mask='auto')
+
         pdf.setFont("Helvetica-Bold", 15)
         pdf.drawCentredString(x + cert_w / 2, y + cert_h - 20, school_name)
         pdf.setFont("Helvetica-Bold", 10)
@@ -526,16 +547,16 @@ def build_certificate_pdf(students, school):
         pdf.drawString(x + 10, y + cert_h - 74, f"Grado: {student['grade'] or '-'}")
         pdf.drawString(x + 10, y + cert_h - 86, f"Usuario: {student['unique_user']}")
 
-        # QR centrado y más grande, sin tapar texto
+        # QR al lateral derecho, evitando tapar la marca de agua y el texto
         qr_buf = io.BytesIO()
         qrcode.make(student["unique_user"]).save(qr_buf, format="PNG")
         qr_buf.seek(0)
-        qr_size = 64
-        qr_x = x + (cert_w - qr_size) / 2
-        qr_y = y + 10
+        qr_size = 62
+        qr_x = x + cert_w - qr_size - 10
+        qr_y = y + 12
         pdf.drawImage(ImageReader(qr_buf), qr_x, qr_y, width=qr_size, height=qr_size)
         pdf.setFont("Helvetica", 7)
-        pdf.drawCentredString(x + cert_w / 2, qr_y - 6, "QR de usuario para votar")
+        pdf.drawString(qr_x, qr_y - 6, "QR usuario")
 
         if slot == (cols * rows - 1) and idx != len(students) - 1:
             pdf.showPage()

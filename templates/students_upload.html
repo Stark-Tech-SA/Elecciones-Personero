@@ -13,7 +13,7 @@
 <div class="card">
   <h2>Estudiantes</h2>
   <table>
-    <tr><th>Documento</th><th>Nombre</th><th>Grado</th><th>Grupo</th><th>Usuario (8 dígitos)</th><th>QR</th><th>Estado</th></tr>
+    <tr><th>Documento</th><th>Nombre</th><th>Grado</th><th>Grupo</th><th>Usuario</th><th>QR</th><th>Estado</th><th>Acciones</th></tr>
     {% for s in students %}
       <tr>
         <td>{{ s.doc_id }}</td>
@@ -23,9 +23,14 @@
         <td>{{ s.unique_user }}</td>
         <td><img src="{{ url_for('qr_image', token=s.qr_token) }}" alt="qr" style="height:48px;"></td>
         <td>{{ 'Votó' if s.voted else 'Pendiente' }}</td>
+        <td>
+          <form method="post" action="{{ url_for('student_delete', student_id=s.id) }}" onsubmit="return confirm('¿Eliminar este estudiante?');">
+            <button type="submit" style="background:#dc3545;color:#fff;">Eliminar</button>
+          </form>
+        </td>
       </tr>
     {% else %}
-      <tr><td colspan="7">No hay estudiantes.</td></tr>
+      <tr><td colspan="8">No hay estudiantes.</td></tr>
     {% endfor %}
   </table>
 </div>
