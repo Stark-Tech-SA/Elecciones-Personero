@@ -12,6 +12,9 @@ pip install -r requirements.txt
 python run_admin.py
 ```
 
+## Inicio del sistema
+- Pantalla inicial (selección Admin/Jurado): `http://localhost:5000/`
+
 ## Rutas principales (mismo host)
 - Administración: `http://localhost:5000/admin/login`
 - Votación estudiantes: `http://localhost:5000/votacion/login`

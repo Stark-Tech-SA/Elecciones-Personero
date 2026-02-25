@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:520px; margin:auto; text-align:center;">
+  <h2>Bienvenido al sistema de votación</h2>
+  <p class="muted">Selecciona cómo deseas ingresar al sistema.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:1rem;">
+    <a class="btn-link" href="{{ url_for('admin_login') }}" style="text-align:center;">Ingresar como Admin</a>
+    <a class="btn-link" href="{{ url_for('jury_login') }}" style="text-align:center; background:#6f42c1;">Ingresar como Jurado</a>
+  </div>
+
+  <div style="margin-top:10px;">
+    <a class="btn-link" href="{{ url_for('login') }}" style="background:#198754;">Ir a Votaciones</a>
+  </div>
+</div>
+{% endblock %}

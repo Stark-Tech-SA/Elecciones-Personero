@@ -235,7 +235,7 @@ def split_by_port():
         return None
 
     if path == "/":
-        return redirect(url_for("admin_login"))
+        return None
 
     # Toda ruta administrativa exige sesión (excepto login)
     if path.startswith("/admin") and path != "/admin/login" and not session.get("admin_logged"):
@@ -251,6 +251,11 @@ def split_by_port():
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename: str):
     return send_from_directory(UPLOADS, filename)
+
+
+@app.route("/")
+def index():
+    return render_template("start.html")
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
