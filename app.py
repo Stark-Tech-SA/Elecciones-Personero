@@ -257,6 +257,11 @@ def uploaded_file(filename: str):
 
 @app.route("/")
 def index():
+    # Refuerza inicio limpio de sesión por rol para evitar mostrar paneles cruzados.
+    session.pop("admin_logged", None)
+    session.pop("admin_username", None)
+    session.pop("jury_logged", None)
+    session.pop("jury_username", None)
     return render_template("start.html")
 
 
@@ -583,23 +588,33 @@ def students_upload():
         return redirect(url_for("students_upload"))
 
     selected_grade = request.args.get("grade", "").strip()
+    selected_group = request.args.get("group_name", "").strip()
+
     grades = db.execute(
         "SELECT DISTINCT grade FROM students WHERE grade IS NOT NULL AND TRIM(grade) <> '' ORDER BY grade"
     ).fetchall()
+    groups = db.execute(
+        "SELECT DISTINCT group_name FROM students WHERE group_name IS NOT NULL AND TRIM(group_name) <> '' ORDER BY group_name"
+    ).fetchall()
 
+    query = "SELECT * FROM students WHERE 1=1"
+    params = []
     if selected_grade:
-        students = db.execute(
-            "SELECT * FROM students WHERE grade = ? ORDER BY full_name",
-            (selected_grade,),
-        ).fetchall()
-    else:
-        students = db.execute("SELECT * FROM students ORDER BY grade, full_name").fetchall()
+        query += " AND grade = ?"
+        params.append(selected_grade)
+    if selected_group:
+        query += " AND group_name = ?"
+        params.append(selected_group)
+    query += " ORDER BY grade, group_name, full_name"
+    students = db.execute(query, tuple(params)).fetchall()
 
     return render_template(
         "students_upload.html",
         students=students,
         grades=grades,
+        groups=groups,
         selected_grade=selected_grade,
+        selected_group=selected_group,
     )
 
 
@@ -682,7 +697,8 @@ def build_certificate_pdf(students, school):
         pdf.drawString(x + 10, y + cert_h - 50, f"Estudiante: {student['full_name']}")
         pdf.drawString(x + 10, y + cert_h - 62, f"Documento: {student['doc_id'] or '-'}")
         pdf.drawString(x + 10, y + cert_h - 74, f"Grado: {student['grade'] or '-'}")
-        pdf.drawString(x + 10, y + cert_h - 86, f"Usuario: {student['unique_user']}")
+        pdf.drawString(x + 10, y + cert_h - 86, f"Grupo: {student['group_name'] or '-'}")
+        pdf.drawString(x + 10, y + cert_h - 98, f"Usuario: {student['unique_user']}")
 
         # QR al lateral derecho, evitando tapar la marca de agua y el texto
         qr_buf = io.BytesIO()

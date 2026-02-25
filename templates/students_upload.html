@@ -11,14 +11,23 @@
 </div>
 
 <div class="card">
-  <h2>Organizar por grado</h2>
-  <form method="get" action="{{ url_for('students_upload') }}" style="display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:end;">
+  <h2>Organizar estudiantes</h2>
+  <form method="get" action="{{ url_for('students_upload') }}" style="display:grid; grid-template-columns: 1fr 1fr auto auto; gap:8px; align-items:end;">
     <div>
       <label>Grado</label>
       <select name="grade">
         <option value="">Todos</option>
         {% for g in grades %}
           <option value="{{ g.grade }}" {% if selected_grade == g.grade %}selected{% endif %}>{{ g.grade }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Grupo</label>
+      <select name="group_name">
+        <option value="">Todos</option>
+        {% for grp in groups %}
+          <option value="{{ grp.group_name }}" {% if selected_group == grp.group_name %}selected{% endif %}>{{ grp.group_name }}</option>
         {% endfor %}
       </select>
     </div>
