@@ -12,7 +12,7 @@
           <h3 style="margin:.4rem 0 .7rem; text-align:center; font-size:1.45rem;">{{ c.full_name }}</h3>
           <p class="muted" style="margin:0 0 .5rem; text-align:center;">Grado: {{ c.grade or '-' }}</p>
           {% if c.photo_path %}
-            <img src="/{{ c.photo_path }}" alt="foto" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:.6rem;">
+            <img src="/{{ c.photo_path }}" alt="foto" style="width:min(100%, 420px); aspect-ratio:1 / 1; object-fit:cover; border-radius:8px; margin:0 auto .6rem; display:block;">
           {% endif %}
           <p style="margin:0;"><strong>Propuesta:</strong> {{ c.proposal or 'Sin propuesta registrada.' }}</p>
         </label>
