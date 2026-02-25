@@ -300,6 +300,8 @@ def jury_login():
 
     session.pop("jury_logged", None)
     session.pop("jury_username", None)
+    session.pop("admin_logged", None)
+    session.pop("admin_username", None)
     return render_template("jury_login.html")
 
 
@@ -442,8 +444,36 @@ def candidates():
         return guard
 
     db = get_db()
+    edit_id = request.args.get("edit_id", type=int)
+    candidate_to_edit = None
+
     if request.method == "POST":
+        candidate_id = request.form.get("candidate_id", "").strip()
         photo_path = save_upload(request.files.get("photo"), "candidate")
+
+        if candidate_id:
+            current = db.execute("SELECT * FROM candidates WHERE id = ?", (int(candidate_id),)).fetchone()
+            if current:
+                final_photo = photo_path or current["photo_path"]
+                db.execute(
+                    """
+                    UPDATE candidates
+                    SET full_name = ?, grade = ?, position = ?, proposal = ?, photo_path = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        request.form.get("full_name", "").strip(),
+                        request.form.get("grade", "").strip(),
+                        "Personero",
+                        request.form.get("proposal", "").strip(),
+                        final_photo,
+                        int(candidate_id),
+                    ),
+                )
+                db.commit()
+                flash("Candidato actualizado.")
+                return redirect(url_for("candidates"))
+
         db.execute(
             """
             INSERT INTO candidates (full_name, grade, position, proposal, photo_path)
@@ -452,7 +482,7 @@ def candidates():
             (
                 request.form.get("full_name", "").strip(),
                 request.form.get("grade", "").strip(),
-                request.form.get("position", "").strip(),
+                "Personero",
                 request.form.get("proposal", "").strip(),
                 photo_path,
             ),
@@ -461,7 +491,25 @@ def candidates():
         flash("Candidato registrado.")
         return redirect(url_for("candidates"))
 
-    return render_template("candidates.html", candidates=db.execute("SELECT * FROM candidates ORDER BY position, full_name").fetchall())
+    if edit_id:
+        candidate_to_edit = db.execute("SELECT * FROM candidates WHERE id = ?", (edit_id,)).fetchone()
+
+    all_candidates = db.execute("SELECT * FROM candidates WHERE position = 'Personero' ORDER BY full_name").fetchall()
+    return render_template("candidates.html", candidates=all_candidates, candidate_to_edit=candidate_to_edit)
+
+
+@app.post("/admin/candidates/<int:candidate_id>/delete")
+def candidate_delete(candidate_id: int):
+    guard = admin_required()
+    if guard:
+        return guard
+
+    db = get_db()
+    db.execute("DELETE FROM votes WHERE candidate_id = ?", (candidate_id,))
+    deleted = db.execute("DELETE FROM candidates WHERE id = ?", (candidate_id,)).rowcount
+    db.commit()
+    flash("Candidato eliminado." if deleted else "No se encontró el candidato.")
+    return redirect(url_for("candidates"))
 
 
 @app.route("/admin/students", methods=["GET", "POST"])
@@ -675,7 +723,7 @@ def results():
     chart_values = [row["votes"] for row in tally]
 
     winners = {}
-    for position in ["Personero", "Contralor"]:
+    for position in ["Personero"]:
         best = max((r for r in tally if r["position"] == position), key=lambda x: x["votes"], default=None)
         winners[position] = best
 
@@ -752,7 +800,7 @@ def vote():
         flash("Este usuario ya votó o no existe.", "already_voted")
         return redirect(url_for("login"))
 
-    positions = ["Personero", "Contralor"]
+    positions = ["Personero"]
     candidates_by_position = {
         position: db.execute("SELECT * FROM candidates WHERE position = ? ORDER BY full_name", (position,)).fetchall()
         for position in positions
@@ -760,15 +808,13 @@ def vote():
 
     if request.method == "POST":
         personero_id = request.form.get("personero")
-        contralor_id = request.form.get("contralor")
 
-        if not personero_id or not contralor_id:
-            flash("Debes seleccionar Personero y Contralor.", "error")
+        if not personero_id:
+            flash("Debes seleccionar un candidato a Personero.", "error")
             return redirect(url_for("vote"))
 
         now = datetime.now().isoformat()
         db.execute("INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)", (student_id, "Personero", int(personero_id), now))
-        db.execute("INSERT INTO votes (student_id, position, candidate_id, created_at) VALUES (?, ?, ?, ?)", (student_id, "Contralor", int(contralor_id), now))
         db.execute("UPDATE students SET voted = 1, voted_at = ? WHERE id = ?", (now, student_id))
         db.commit()
 

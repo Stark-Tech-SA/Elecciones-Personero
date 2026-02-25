@@ -1,41 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-  <h2>Registrar candidato</h2>
+  <h2>{{ 'Editar candidato' if candidate_to_edit else 'Registrar candidato' }}</h2>
   <form method="post" enctype="multipart/form-data">
+    {% if candidate_to_edit %}<input type="hidden" name="candidate_id" value="{{ candidate_to_edit.id }}">{% endif %}
+
     <label>Nombre completo</label>
-    <input name="full_name" required>
+    <input name="full_name" required value="{{ candidate_to_edit.full_name if candidate_to_edit else '' }}">
 
     <label>Grado</label>
-    <input name="grade">
+    <input name="grade" value="{{ candidate_to_edit.grade if candidate_to_edit else '' }}">
 
     <label>Cargo</label>
-    <select name="position" required>
-      <option>Personero</option>
-      <option>Contralor</option>
-    </select>
+    <input value="Personero" disabled>
 
     <label>Propuesta</label>
-    <textarea name="proposal"></textarea>
+    <textarea name="proposal">{{ candidate_to_edit.proposal if candidate_to_edit else '' }}</textarea>
 
     <label>Foto</label>
     <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp">
+    {% if candidate_to_edit and candidate_to_edit.photo_path %}
+      <img src="/{{ candidate_to_edit.photo_path }}" alt="foto" style="max-height:100px; border-radius:6px;">
+    {% endif %}
 
-    <button type="submit">Guardar candidato</button>
+    <button type="submit">{{ 'Actualizar candidato' if candidate_to_edit else 'Guardar candidato' }}</button>
+    {% if candidate_to_edit %}<a class="btn-link" href="{{ url_for('candidates') }}">Cancelar edición</a>{% endif %}
   </form>
 </div>
 
 <div class="card">
-  <h2>Listado de candidatos</h2>
+  <h2>Listado de candidatos (Personero)</h2>
   <table>
-    <tr><th>Nombre</th><th>Grado</th><th>Cargo</th><th>Propuesta</th><th>Foto</th></tr>
+    <tr><th>Nombre</th><th>Grado</th><th>Propuesta</th><th>Foto</th><th>Acciones</th></tr>
     {% for c in candidates %}
       <tr>
         <td>{{ c.full_name }}</td>
         <td>{{ c.grade }}</td>
-        <td>{{ c.position }}</td>
         <td>{{ c.proposal }}</td>
-        <td>{% if c.photo_path %}<img src="/{{ c.photo_path }}" alt="foto" style="max-height:60px;">{% endif %}</td>
+        <td>{% if c.photo_path %}<img src="/{{ c.photo_path }}" alt="foto" style="max-height:80px; border-radius:6px;">{% endif %}</td>
+        <td>
+          <a class="btn-link" href="{{ url_for('candidates', edit_id=c.id) }}">Editar</a>
+          <form method="post" action="{{ url_for('candidate_delete', candidate_id=c.id) }}" onsubmit="return confirm('¿Eliminar este candidato?');" style="margin-top:6px;">
+            <button type="submit" style="background:#dc3545;color:#fff;">Eliminar</button>
+          </form>
+        </td>
       </tr>
     {% else %}
       <tr><td colspan="5">Sin candidatos registrados.</td></tr>

@@ -2,26 +2,24 @@
 {% block content %}
 <div class="card">
   <h2>Hola, {{ student.full_name }}</h2>
-  <p>Selecciona un candidato por cada cargo.</p>
+  <p>Selecciona tu candidato a Personero.</p>
   <form method="post">
-    {% for position, candidates in candidates_by_position.items() %}
-      <h3>{{ position }}</h3>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin-bottom:18px;">
-        {% for c in candidates %}
-          <label style="border:1px solid #ddd; border-radius:8px; padding:10px; display:block; cursor:pointer; background:#fff;">
-            <input type="radio" name="{{ 'personero' if position == 'Personero' else 'contralor' }}" value="{{ c.id }}" required>
-            <h4 style="margin:.5rem 0;">{{ c.full_name }}</h4>
-            <p class="muted" style="margin:0 0 .4rem;">Grado: {{ c.grade or '-' }}</p>
-            {% if c.photo_path %}
-              <img src="/{{ c.photo_path }}" alt="foto" style="width:100%; max-height:180px; object-fit:cover; border-radius:6px; margin-bottom:.5rem;">
-            {% endif %}
-            <p style="margin:0;"><strong>Propuesta:</strong> {{ c.proposal or 'Sin propuesta registrada.' }}</p>
-          </label>
-        {% else %}
-          <p>No hay candidatos para {{ position }}.</p>
-        {% endfor %}
-      </div>
-    {% endfor %}
+    <h3>Personero</h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:14px; margin-bottom:18px;">
+      {% for c in candidates_by_position['Personero'] %}
+        <label style="border:1px solid #ddd; border-radius:10px; padding:12px; display:block; cursor:pointer; background:#fff;">
+          <input type="radio" name="personero" value="{{ c.id }}" required>
+          <h3 style="margin:.4rem 0 .7rem; text-align:center; font-size:1.45rem;">{{ c.full_name }}</h3>
+          <p class="muted" style="margin:0 0 .5rem; text-align:center;">Grado: {{ c.grade or '-' }}</p>
+          {% if c.photo_path %}
+            <img src="/{{ c.photo_path }}" alt="foto" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:.6rem;">
+          {% endif %}
+          <p style="margin:0;"><strong>Propuesta:</strong> {{ c.proposal or 'Sin propuesta registrada.' }}</p>
+        </label>
+      {% else %}
+        <p>No hay candidatos a Personero registrados.</p>
+      {% endfor %}
+    </div>
 
     <button type="submit">Registrar voto</button>
   </form>
