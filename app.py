@@ -88,6 +88,12 @@ def init_db():
             password TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS jury_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             full_name TEXT NOT NULL,
@@ -138,6 +144,13 @@ def init_db():
         ON CONFLICT(username) DO NOTHING
         """
     )
+    db.execute(
+        """
+        INSERT INTO jury_users (username, password)
+        VALUES ('jurado', 'jurado123')
+        ON CONFLICT(username) DO NOTHING
+        """
+    )
     db.commit()
     db.close()
 
@@ -167,11 +180,14 @@ def get_design_settings():
 def inject_theme_context():
     db = get_db()
     school = db.execute("SELECT * FROM school_info WHERE id=1").fetchone()
+    path = request.path
+    is_voting_section = path.startswith("/votacion") or path in {"/login", "/vote", "/logout"}
     return {
         "theme": get_design_settings(),
         "school_ctx": school,
         "ADMIN_BASE": app_base_url(ADMIN_PORT),
         "VOTING_BASE": app_base_url(VOTING_PORT),
+        "is_voting_section": is_voting_section,
     }
 
 
@@ -225,6 +241,10 @@ def split_by_port():
     if path.startswith("/admin") and path != "/admin/login" and not session.get("admin_logged"):
         return redirect(url_for("admin_login"))
 
+    # Ruta de jurado con acceso básico (sin admin ni resultados)
+    if path.startswith("/jurado") and path != "/jurado/login" and not session.get("jury_logged"):
+        return redirect(url_for("jury_login"))
+
     return None
 
 
@@ -259,6 +279,48 @@ def admin_logout():
     session.pop("admin_logged", None)
     session.pop("admin_username", None)
     return redirect(url_for("admin_login"))
+
+
+
+
+@app.route("/jurado/login", methods=["GET", "POST"])
+def jury_login():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        jury = get_db().execute(
+            "SELECT * FROM jury_users WHERE username = ? AND password = ?", (username, password)
+        ).fetchone()
+        if not jury:
+            flash("Credenciales de jurado inválidas.")
+            return redirect(url_for("jury_login"))
+        session["jury_logged"] = True
+        session["jury_username"] = jury["username"]
+        return redirect(url_for("jury_home"))
+
+    session.pop("jury_logged", None)
+    session.pop("jury_username", None)
+    return render_template("jury_login.html")
+
+
+@app.route("/jurado/logout")
+def jury_logout():
+    session.pop("jury_logged", None)
+    session.pop("jury_username", None)
+    return redirect(url_for("jury_login"))
+
+
+@app.route("/jurado")
+def jury_home():
+    if not session.get("jury_logged"):
+        return redirect(url_for("jury_login"))
+    db = get_db()
+    students = db.execute("SELECT * FROM students ORDER BY full_name").fetchall()
+    counts = {
+        "students": db.execute("SELECT COUNT(*) AS c FROM students").fetchone()["c"],
+        "voted": db.execute("SELECT COUNT(*) AS c FROM students WHERE voted=1").fetchone()["c"],
+    }
+    return render_template("jury_home.html", students=students, counts=counts)
 
 
 @app.route("/admin")

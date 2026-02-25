@@ -50,11 +50,13 @@
     </div>
   </div>
 
+  {% if not is_voting_section %}
   <div style="margin:.4rem 0 1rem;">
     <a class="btn-link" href="{{ url_for('login') }}">Ir a votaciones</a>
   </div>
+  {% endif %}
 
-  {% if session.get('admin_logged') %}
+  {% if session.get('admin_logged') and not is_voting_section %}
   <nav>
     <a href="{{ url_for('admin_home') }}">Panel</a>
     <a href="{{ url_for('school_info') }}">Colegio</a>
@@ -64,6 +66,12 @@
     <a href="{{ url_for('certificates_pdf') }}">PDF Certificados</a>
     <a href="{{ url_for('results') }}">Resultados</a>
     <a href="{{ url_for('admin_logout') }}">Salir admin</a>
+  </nav>
+  {% elif session.get('jury_logged') and not is_voting_section %}
+  <nav>
+    <a href="{{ url_for('jury_home') }}">Panel jurado</a>
+    <a href="{{ url_for('login') }}">Ir a votación</a>
+    <a href="{{ url_for('jury_logout') }}">Salir jurado</a>
   </nav>
   {% endif %}
 

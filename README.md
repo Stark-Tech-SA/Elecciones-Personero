@@ -26,3 +26,10 @@ El ejecutable queda en:
 - `dist\EleccionesPersonero.exe`
 
 > Nota: PyInstaller genera `.exe` cuando se ejecuta en Windows.
+
+
+## Jurado de votación
+- Login jurado: `http://localhost:5000/jurado/login`
+- Usuario inicial: `jurado`
+- Clave inicial: `jurado123`
+> Recomendado cambiar credenciales en base de datos tras la primera ejecución.

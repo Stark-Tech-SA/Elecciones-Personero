@@ -2,23 +2,26 @@
 {% block content %}
 <div class="card">
   <h2>Hola, {{ student.full_name }}</h2>
-  <p>Selecciona un candidato para cada cargo.</p>
+  <p>Selecciona un candidato por cada cargo.</p>
   <form method="post">
-    <label>Personero</label>
-    <select name="personero" required>
-      <option value="">Selecciona...</option>
-      {% for c in candidates_by_position['Personero'] %}
-        <option value="{{ c.id }}">{{ c.full_name }} ({{ c.grade }})</option>
-      {% endfor %}
-    </select>
-
-    <label>Contralor</label>
-    <select name="contralor" required>
-      <option value="">Selecciona...</option>
-      {% for c in candidates_by_position['Contralor'] %}
-        <option value="{{ c.id }}">{{ c.full_name }} ({{ c.grade }})</option>
-      {% endfor %}
-    </select>
+    {% for position, candidates in candidates_by_position.items() %}
+      <h3>{{ position }}</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin-bottom:18px;">
+        {% for c in candidates %}
+          <label style="border:1px solid #ddd; border-radius:8px; padding:10px; display:block; cursor:pointer; background:#fff;">
+            <input type="radio" name="{{ 'personero' if position == 'Personero' else 'contralor' }}" value="{{ c.id }}" required>
+            <h4 style="margin:.5rem 0;">{{ c.full_name }}</h4>
+            <p class="muted" style="margin:0 0 .4rem;">Grado: {{ c.grade or '-' }}</p>
+            {% if c.photo_path %}
+              <img src="/{{ c.photo_path }}" alt="foto" style="width:100%; max-height:180px; object-fit:cover; border-radius:6px; margin-bottom:.5rem;">
+            {% endif %}
+            <p style="margin:0;"><strong>Propuesta:</strong> {{ c.proposal or 'Sin propuesta registrada.' }}</p>
+          </label>
+        {% else %}
+          <p>No hay candidatos para {{ position }}.</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
 
     <button type="submit">Registrar voto</button>
   </form>

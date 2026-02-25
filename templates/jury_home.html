@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid">
+  <div class="card"><h3>Total estudiantes</h3><p>{{ counts.students }}</p></div>
+  <div class="card"><h3>Ya votaron</h3><p>{{ counts.voted }}</p></div>
+</div>
+<div class="card">
+  <h2>Control de asistencia a votación (Jurado)</h2>
+  <table>
+    <tr><th>Documento</th><th>Nombre</th><th>Grado</th><th>Grupo</th><th>Usuario</th><th>Estado</th></tr>
+    {% for s in students %}
+      <tr>
+        <td>{{ s.doc_id }}</td><td>{{ s.full_name }}</td><td>{{ s.grade }}</td><td>{{ s.group_name }}</td><td>{{ s.unique_user }}</td><td>{{ 'Votó' if s.voted else 'Pendiente' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6">No hay estudiantes.</td></tr>
+    {% endfor %}
+  </table>
+  <p class="muted">El jurado no tiene acceso a configuración administrativa ni resultados.</p>
+</div>
+{% endblock %}
