@@ -578,7 +578,25 @@ def students_upload():
         flash(f"Carga completada: {inserted} estudiantes nuevos, {skipped} omitidos.")
         return redirect(url_for("students_upload"))
 
-    return render_template("students_upload.html", students=db.execute("SELECT * FROM students ORDER BY full_name").fetchall())
+    selected_grade = request.args.get("grade", "").strip()
+    grades = db.execute(
+        "SELECT DISTINCT grade FROM students WHERE grade IS NOT NULL AND TRIM(grade) <> '' ORDER BY grade"
+    ).fetchall()
+
+    if selected_grade:
+        students = db.execute(
+            "SELECT * FROM students WHERE grade = ? ORDER BY full_name",
+            (selected_grade,),
+        ).fetchall()
+    else:
+        students = db.execute("SELECT * FROM students ORDER BY grade, full_name").fetchall()
+
+    return render_template(
+        "students_upload.html",
+        students=students,
+        grades=grades,
+        selected_grade=selected_grade,
+    )
 
 
 @app.post("/admin/students/<int:student_id>/delete")
