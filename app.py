@@ -99,6 +99,7 @@ def init_db():
             full_name TEXT NOT NULL,
             grade TEXT,
             position TEXT NOT NULL,
+            tarjeton_number TEXT,
             proposal TEXT,
             photo_path TEXT
         );
@@ -129,6 +130,7 @@ def init_db():
 
     ensure_column(db, "design_settings", "header_image_path", "TEXT")
     ensure_column(db, "design_settings", "background_image_path", "TEXT")
+    ensure_column(db, "candidates", "tarjeton_number", "TEXT")
 
     db.execute(
         """
@@ -463,13 +465,14 @@ def candidates():
                 db.execute(
                     """
                     UPDATE candidates
-                    SET full_name = ?, grade = ?, position = ?, proposal = ?, photo_path = ?
+                    SET full_name = ?, grade = ?, position = ?, tarjeton_number = ?, proposal = ?, photo_path = ?
                     WHERE id = ?
                     """,
                     (
                         request.form.get("full_name", "").strip(),
                         request.form.get("grade", "").strip(),
                         "Personero",
+                        request.form.get("tarjeton_number", "").strip(),
                         request.form.get("proposal", "").strip(),
                         final_photo,
                         int(candidate_id),
@@ -481,13 +484,14 @@ def candidates():
 
         db.execute(
             """
-            INSERT INTO candidates (full_name, grade, position, proposal, photo_path)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO candidates (full_name, grade, position, tarjeton_number, proposal, photo_path)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 request.form.get("full_name", "").strip(),
                 request.form.get("grade", "").strip(),
                 "Personero",
+                request.form.get("tarjeton_number", "").strip(),
                 request.form.get("proposal", "").strip(),
                 photo_path,
             ),
@@ -499,7 +503,7 @@ def candidates():
     if edit_id:
         candidate_to_edit = db.execute("SELECT * FROM candidates WHERE id = ?", (edit_id,)).fetchone()
 
-    all_candidates = db.execute("SELECT * FROM candidates WHERE position = 'Personero' ORDER BY full_name").fetchall()
+    all_candidates = db.execute("SELECT * FROM candidates WHERE position = 'Personero' ORDER BY tarjeton_number, full_name").fetchall()
     return render_template("candidates.html", candidates=all_candidates, candidate_to_edit=candidate_to_edit)
 
 
@@ -825,7 +829,7 @@ def vote():
 
     positions = ["Personero"]
     candidates_by_position = {
-        position: db.execute("SELECT * FROM candidates WHERE position = ? ORDER BY full_name", (position,)).fetchall()
+        position: db.execute("SELECT * FROM candidates WHERE position = ? ORDER BY tarjeton_number, full_name", (position,)).fetchall()
         for position in positions
     }
 

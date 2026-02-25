@@ -14,6 +14,9 @@
     <label>Cargo</label>
     <input value="Personero" disabled>
 
+    <label>Número de tarjetón</label>
+    <input name="tarjeton_number" value="{{ candidate_to_edit.tarjeton_number if candidate_to_edit else '' }}" placeholder="Ej: 01" required>
+
     <label>Propuesta</label>
     <textarea name="proposal">{{ candidate_to_edit.proposal if candidate_to_edit else '' }}</textarea>
 
@@ -31,9 +34,10 @@
 <div class="card">
   <h2>Listado de candidatos (Personero)</h2>
   <table>
-    <tr><th>Nombre</th><th>Grado</th><th>Propuesta</th><th>Foto</th><th>Acciones</th></tr>
+    <tr><th>Tarjetón</th><th>Nombre</th><th>Grado</th><th>Propuesta</th><th>Foto</th><th>Acciones</th></tr>
     {% for c in candidates %}
       <tr>
+        <td><strong>#{{ c.tarjeton_number or "-" }}</strong></td>
         <td>{{ c.full_name }}</td>
         <td>{{ c.grade }}</td>
         <td>{{ c.proposal }}</td>
@@ -46,7 +50,7 @@
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="5">Sin candidatos registrados.</td></tr>
+      <tr><td colspan="6">Sin candidatos registrados.</td></tr>
     {% endfor %}
   </table>
 </div>
