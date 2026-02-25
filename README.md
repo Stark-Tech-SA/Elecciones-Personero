@@ -33,3 +33,11 @@ El ejecutable queda en:
 - Usuario inicial: `jurado`
 - Clave inicial: `jurado123`
 > Recomendado cambiar credenciales en base de datos tras la primera ejecución.
+
+
+## Inicio rápido en Windows (.bat)
+En `cmd` puedes preparar e iniciar la app con un solo archivo:
+```bat
+iniciar_app.bat
+```
+Este script crea `.venv` (si no existe), instala dependencias y ejecuta `run_admin.py`.
